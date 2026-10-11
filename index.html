@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Permintaan Barang - PT WAHANA PRIMA SEJATI</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- SheetJS for Excel Import/Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Custom print stylesheet */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printArea, #printArea * {
+                visibility: visible;
+            }
+            #printArea {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: white;
+                color: black;
+                padding: 20px;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- TOP NAVBAR -->
+    <header id="topNavbar" class="bg-slate-900 text-white shadow-md sticky top-0 z-30 hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-sky-500 text-white p-2 rounded-lg font-bold text-xl flex items-center justify-center">
+                    <i data-lucide="package" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight tracking-wide">PT WAHANA PRIMA SEJATI</h1>
+                    <p class="text-xs text-sky-400 font-medium">Sistem Permintaan Barang Warehouse</p>
+                </div>
+            </div>
+
+            <!-- User Info & Controls -->
+            <div class="flex items-center space-x-4">
+                <div class="text-right hidden sm:block">
+                    <div id="navUserName" class="text-sm font-semibold text-slate-100">User Name</div>
+                    <div id="navUserRole" class="text-xs text-sky-300 font-medium">Role / Department</div>
+                </div>
+                <button onclick="app.logout()" class="p-2 rounded-lg bg-slate-800 hover:bg-red-600 text-slate-300 hover:text-white transition flex items-center gap-1 text-sm font-medium" title="Keluar">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                    <span class="hidden md:inline">Keluar</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN APP WRAPPER -->
+    <div class="flex-1 flex flex-col md:flex-row max-w-7xl w-full mx-auto p-4 sm:p-6 gap-6">
+        
+        <!-- SIDEBAR NAVIGATION -->
+        <aside id="mainSidebar" class="w-full md:w-64 bg-white rounded-xl shadow-sm border border-slate-200 p-4 shrink-0 hidden">
+            <div class="space-y-1">
+                <div class="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Navigasi Utama</div>
+                
+                <button onclick="app.switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-slate-700 hover:bg-slate-100">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5 text-slate-500"></i>
+                    <span>Dashboard</span>
+                </button>
+
+                <button onclick="app.switchTab('requests')" id="nav-requests" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-slate-700 hover:bg-slate-100">
+                    <i data-lucide="file-text" class="w-5 h-5 text-slate-500"></i>
+                    <span>Daftar Permintaan</span>
+                </button>
+
+                <button onclick="app.openNewRequestModal()" id="btn-create-request" class="w-full mt-2 flex items-center justify-center space-x-2 px-3 py-2.5 rounded-lg text-sm font-semibold bg-sky-600 text-white hover:bg-sky-700 shadow-sm transition">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                    <span>Buat Permintaan</span>
+                </button>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-slate-200 space-y-1">
+                <div class="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Warehouse & Logistik</div>
+                
+                <button onclick="app.switchTab('inventory')" id="nav-inventory" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-slate-700 hover:bg-slate-100">
+                    <i data-lucide="boxes" class="w-5 h-5 text-slate-500"></i>
+                    <span>Master Stok Barang</span>
+                </button>
+
+                <button onclick="app.switchTab('logs')" id="nav-logs" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-slate-700 hover:bg-slate-100">
+                    <i data-lucide="history" class="w-5 h-5 text-slate-500"></i>
+                    <span>Audit Log & Barang Keluar</span>
+                </button>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-slate-200">
+                <div class="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Info Pengguna</div>
+                <div class="px-3 py-2 text-xs text-slate-500">
+                    <p id="sidebarUserDept" class="font-medium text-slate-700">Departemen: -</p>
+                    <p id="sidebarUserRole" class="mt-0.5">Role: -</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CONTENT AREA -->
+        <main class="flex-1 min-w-0">
+            
+            <!-- LOGIN SCREEN -->
+            <div id="screen-login" class="max-w-md mx-auto my-12 bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
+                <div class="text-center mb-6">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-sky-100 text-sky-600 mb-3">
+                        <i data-lucide="factory" class="w-10 h-10"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-900">PT WAHANA PRIMA SEJATI</h2>
+                    <p class="text-sm text-slate-500 mt-1">Sistem Permintaan Barang Warehouse</p>
+                </div>
+
+                <form id="loginForm" onsubmit="app.handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Pilih Akun Demonstrasi / Login</label>
+                        <select id="loginSelectUser" class="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm">
+                            <!-- Populated dynamically via JS -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                        <input type="password" value="123456" readonly class="w-full px-3 py-2.5 bg-slate-100 border border-slate-300 rounded-lg text-sm text-slate-500" placeholder="Default: 123456">
+                    </div>
+
+                    <button type="submit" class="w-full py-3 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-lg shadow-md transition duration-200">
+                        Masuk Sistem
+                    </button>
+                </form>
+
+                <div class="mt-6 p-4 bg-sky-50 rounded-xl border border-sky-100 text-xs text-sky-800 space-y-1">
+                    <p class="font-semibold text-sky-900">Petunjuk Hak Akses:</p>
+                    <p>• <b>16 Departemen:</b> Pemohon (user) & SPV (spv) tersedia lengkap.</p>
+                    <p>• <b>Staff & Admin Warehouse:</b> Memiliki otorisasi mengelola stok & fitur <b>Cancel GI</b>.</p>
+                </div>
+            </div>
+
+            <!-- VIEW: DASHBOARD -->
+            <div id="view-dashboard" class="app-view hidden space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900">Dashboard Utama</h2>
+                        <p class="text-slate-500 text-sm">Ringkasan aktivitas permintaan barang & stok material warehouse.</p>
+                    </div>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 uppercase">Total Permintaan</p>
+                            <h3 id="statTotalRequests" class="text-2xl font-bold text-slate-900 mt-1">0</h3>
+                        </div>
+                        <div class="p-3 bg-sky-50 text-sky-600 rounded-xl">
+                            <i data-lucide="file-text" class="w-6 h-6"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 uppercase">Pending SPV</p>
+                            <h3 id="statPendingSpv" class="text-2xl font-bold text-amber-600 mt-1">0</h3>
+                        </div>
+                        <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
+                            <i data-lucide="clock" class="w-6 h-6"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 uppercase">Siap Diserahkan / GI</p>
+                            <h3 id="statReadyGi" class="text-2xl font-bold text-emerald-600 mt-1">0</h3>
+                        </div>
+                        <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                            <i data-lucide="package-check" class="w-6 h-6"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 uppercase">Item Stok Menipis</p>
+                            <h3 id="statLowStock" class="text-2xl font-bold text-rose-600 mt-1">0</h3>
+                        </div>
+                        <div class="p-3 bg-rose-50 text-rose-600 rounded-xl">
+                            <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <h4 class="font-bold text-slate-800 text-sm mb-4">Statistik Permintaan per Departemen</h4>
+                        <div class="h-64">
+                            <canvas id="chartDeptRequests"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <h4 class="font-bold text-slate-800 text-sm mb-4">Status Tiket Permintaan</h4>
+                        <div class="h-64 flex justify-center">
+                            <canvas id="chartStatusRequests"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: REQUESTS -->
+            <div id="view-requests" class="app-view hidden space-y-4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900">Daftar Permintaan Barang</h2>
+                        <p class="text-slate-500 text-sm">Kelola dan lacak status dokumen Goods Issue (GI) & Persetujuan SPV.</p>
+                    </div>
+                    <button onclick="app.openNewRequestModal()" class="inline-flex items-center justify-center space-x-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-medium text-sm shadow-sm transition">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                        <span>Buat Permintaan Baru</span>
+                    </button>
+                </div>
+
+                <!-- Filters -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3">
+                    <div class="flex-1 relative">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
+                        <input type="text" id="filterSearchReq" oninput="app.renderRequestsTable()" placeholder="Cari Kode Tiket, Pemohon, Dept..." class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500">
+                    </div>
+                    <div class="w-full md:w-48">
+                        <select id="filterStatusReq" onchange="app.renderRequestsTable()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500">
+                            <option value="ALL">Semua Status</option>
+                            <option value="PENDING_SPV">Pending SPV</option>
+                            <option value="APPROVED_SPV">Disetujui SPV (Pending WH)</option>
+                            <option value="COMPLETED">Selesai / Barang Keluar</option>
+                            <option value="CANCELLED">Dibatalkan / Cancel GI</option>
+                        </select>
+                    </div>
+                    <div class="w-full md:w-48">
+                        <select id="filterDeptReq" onchange="app.renderRequestsTable()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500">
+                            <option value="ALL">Semua Dept Tujuan</option>
+                            <!-- Filter options populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Requests Table -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-600">
+                            <thead class="bg-slate-50 text-slate-700 uppercase font-semibold text-xs border-b border-slate-200">
+                                <tr>
+                                    <th class="px-4 py-3">No. Tiket</th>
+                                    <th class="px-4 py-3">Tanggal</th>
+                                    <th class="px-4 py-3">Pemohon</th>
+                                    <th class="px-4 py-3">Dept / Alokasi Material</th>
+                                    <th class="px-4 py-3">Status Tiket</th>
+                                    <th class="px-4 py-3 text-center">Jumlah Item</th>
+                                    <th class="px-4 py-3 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableRequestsBody" class="divide-y divide-slate-200">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: MASTER INVENTORY -->
+            <div id="view-inventory" class="app-view hidden space-y-4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900">Master Stok Warehouse</h2>
+                        <p class="text-slate-500 text-sm">Data ketersediaan barang material, lokasi rak, dan penyesuaian stok.</p>
+                    </div>
+                    <div id="inventoryAdminActions" class="flex flex-wrap gap-2 hidden">
+                        <button onclick="app.downloadExcelTemplate()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium text-xs flex items-center gap-1 border border-slate-300">
+                            <i data-lucide="download" class="w-4 h-4"></i> Template Excel
+                        </button>
+                        <button onclick="document.getElementById('excelFileInput').click()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-xs flex items-center gap-1">
+                            <i data-lucide="file-spread-sheet" class="w-4 h-4"></i> Import Excel
+                        </button>
+                        <input type="file" id="excelFileInput" class="hidden" accept=".xlsx, .xls, .csv" onchange="app.importExcelStock(event)">
+                        <button onclick="app.exportExcelStock()" class="px-3 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-medium text-xs flex items-center gap-1">
+                            <i data-lucide="upload" class="w-4 h-4"></i> Export Excel
+                        </button>
+                        <button onclick="app.openNewItemModal()" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-medium text-xs flex items-center gap-1">
+                            <i data-lucide="plus" class="w-4 h-4"></i> Tambah Item
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3">
+                    <div class="flex-1 relative">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
+                        <input type="text" id="filterSearchStock" oninput="app.renderInventoryTable()" placeholder="Cari Kode Barang, Nama, Kategori, Lokasi Rak..." class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500">
+                    </div>
+                </div>
+
+                <!-- Inventory Table -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-600">
+                            <thead class="bg-slate-50 text-slate-700 uppercase font-semibold text-xs border-b border-slate-200">
+                                <tr>
+                                    <th class="px-4 py-3">Kode Barang</th>
+                                    <th class="px-4 py-3">Nama Barang</th>
+                                    <th class="px-4 py-3">Kategori</th>
+                                    <th class="px-4 py-3">Lokasi Rak</th>
+                                    <th class="px-4 py-3 text-right">Stok Saat Ini</th>
+                                    <th class="px-4 py-3">Satuan</th>
+                                    <th class="px-4 py-3 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableInventoryBody" class="divide-y divide-slate-200">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: LOGS & AUDIT -->
+            <div id="view-logs" class="app-view hidden space-y-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">Audit Log & Catatan Barang</h2>
+                    <p class="text-slate-500 text-sm">Riwayat riil pengeluaran barang, pembatalan (Cancel GI), dan aktivitas stok.</p>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-600">
+                            <thead class="bg-slate-50 text-slate-700 uppercase font-semibold text-xs border-b border-slate-200">
+                                <tr>
+                                    <th class="px-4 py-3">Waktu Log</th>
+                                    <th class="px-4 py-3">Tipe Aktivitas</th>
+                                    <th class="px-4 py-3">Pengguna</th>
+                                    <th class="px-4 py-3">Detail Keterangan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableLogsBody" class="divide-y divide-slate-200">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- DATALIST GLOBAL UNTUK AUTO-SUGGEST DENGAN FILTER NAMA / KODE -->
+    <datalist id="inventoryDatalist">
+        <!-- Populated dynamically via JS -->
+    </datalist>
+
+    <!-- MODAL: NEW / EDIT REQUEST -->
+    <div id="modalRequest" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col">
+            <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-2xl">
+                <div>
+                    <h3 id="modalReqTitle" class="text-lg font-bold text-slate-900">Form Permintaan Barang</h3>
+                    <p class="text-xs text-slate-500">Isi data pemohon, alokasi material, dan daftar barang (Maksimal 10 Item).</p>
+                </div>
+                <button onclick="app.closeModal('modalRequest')" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="formRequest" onsubmit="app.saveRequest(event)" class="p-6 overflow-y-auto space-y-4 flex-1">
+                <input type="hidden" id="reqId">
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Nama Pemohon (Dapat Diedit)</label>
+                        <input type="text" id="reqRequesterName" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500" placeholder="Nama Pemohon Asli">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Departemen Pemohon</label>
+                        <input type="text" id="reqDeptUser" readonly class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-sm text-slate-600 font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Alokasi Material / Dept Tujuan</label>
+                        <select id="reqTargetDept" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500">
+                            <!-- Dynamic 16 departments -->
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Catatan / Keperluan Permintaan</label>
+                    <input type="text" id="reqNotes" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500" placeholder="Contoh: Perbaikan pompa line 2 / Stok bulanan">
+                </div>
+
+                <!-- ITEMS TABLE WITH MANUAL/AUTOCOMPLETE INPUT -->
+                <div class="mt-6 border-t border-slate-200 pt-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center space-x-2">
+                            <h4 class="font-bold text-slate-800 text-sm">Daftar Barang Permintaan</h4>
+                            <span id="itemCounterBadge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-100 text-sky-800">0 / 10 Item</span>
+                        </div>
+                        <button type="button" onclick="app.addRequestRow()" id="btnAddItemRow" class="px-3 py-1.5 bg-sky-600 text-white hover:bg-sky-700 rounded-lg text-xs font-semibold flex items-center gap-1">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Tambah Baris
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto border border-slate-200 rounded-lg">
+                        <table class="w-full text-left text-xs text-slate-600">
+                            <thead class="bg-slate-100 text-slate-700 uppercase font-semibold">
+                                <tr>
+                                    <th class="p-2 w-1/3">Kode / Nama Barang</th>
+                                    <th class="p-2">Lokasi Rak</th>
+                                    <th class="p-2">Stok Ada</th>
+                                    <th class="p-2 w-24">Jumlah Minta</th>
+                                    <th class="p-2 w-20">Satuan</th>
+                                    <th class="p-2 text-center w-12">Hapus</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reqItemsTableBody" class="divide-y divide-slate-200">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="pt-4 flex items-center justify-end space-x-3 border-t border-slate-200">
+                    <button type="button" onclick="app.closeModal('modalRequest')" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-medium rounded-lg">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold rounded-lg shadow-sm">Simpan Permintaan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: DETAIL / SLIP PREVIEW & APPROVAL -->
+    <div id="modalDetail" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col">
+            <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-2xl">
+                <div class="flex items-center space-x-2">
+                    <h3 class="text-lg font-bold text-slate-900">Detail & Bukti Permintaan</h3>
+                    <span id="detailBadgeStatus"></span>
+                </div>
+                <button onclick="app.closeModal('modalDetail')" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto space-y-6 flex-1">
+                <!-- PRINT AREA CONTENT -->
+                <div id="printArea" class="p-6 bg-white border border-slate-200 rounded-xl">
+                    <!-- KOP SURAT -->
+                    <div class="border-b-2 border-slate-800 pb-4 mb-4 flex justify-between items-center">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-900 tracking-wider">PT WAHANA PRIMA SEJATI</h2>
+                            <p class="text-xs text-slate-600">Plant & Operational Warehouse Management System</p>
+                            <p class="text-xs text-slate-500">Jl. Industri Wahana No. 1, Kalimantan Timur - Indonesia</p>
+                        </div>
+                        <div class="text-right">
+                            <h3 class="text-base font-bold text-slate-800 uppercase tracking-wide">SLIP BUKTI PENGELUARAN BARANG</h3>
+                            <p id="printTicketNo" class="text-sm font-mono font-bold text-sky-700">WPS-GI-2026-000</p>
+                            <p id="printDate" class="text-xs text-slate-500">Tgl: -</p>
+                        </div>
+                    </div>
+
+                    <!-- HEADER INFO -->
+                    <div class="grid grid-cols-2 gap-4 text-xs mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <div>
+                            <p><span class="font-semibold text-slate-700">Nama Pemohon:</span> <span id="printRequesterName">-</span></p>
+                            <p><span class="font-semibold text-slate-700">Departemen Pemohon:</span> <span id="printDeptUser">-</span></p>
+                        </div>
+                        <div>
+                            <p><span class="font-semibold text-slate-700">Alokasi Material / Dept Tujuan:</span> <span id="printTargetDept" class="font-bold text-sky-800">-</span></p>
+                            <p><span class="font-semibold text-slate-700">Keterangan / Keperluan:</span> <span id="printNotes">-</span></p>
+                        </div>
+                    </div>
+
+                    <!-- ITEMS TABLE WITH LOKASI RAK -->
+                    <table class="w-full text-left text-xs border-collapse border border-slate-300 mb-6">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-800 border-b border-slate-300">
+                                <th class="border border-slate-300 p-2 text-center w-8">No</th>
+                                <th class="border border-slate-300 p-2">Kode Barang</th>
+                                <th class="border border-slate-300 p-2">Nama Barang Material</th>
+                                <th class="border border-slate-300 p-2 text-center font-bold text-sky-900">Lokasi Rak</th>
+                                <th class="border border-slate-300 p-2 text-right">Jumlah</th>
+                                <th class="border border-slate-300 p-2 text-center">Satuan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="printItemsTableBody">
+                            <!-- Items inserted here -->
+                        </tbody>
+                    </table>
+
+                    <!-- SIGNATURE BLOCK -->
+                    <div class="grid grid-cols-2 gap-8 text-center text-xs mt-12 pt-4">
+                        <div class="flex flex-col justify-between h-28 border border-slate-200 p-3 rounded-lg">
+                            <p class="font-semibold text-slate-700">Tanda Tangan Pemohon,</p>
+                            <div>
+                                <p id="signRequesterName" class="font-bold underline text-slate-900">( .................................... )</p>
+                                <p class="text-[10px] text-slate-500">Pemohon / User Dept</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col justify-between h-28 border border-slate-200 p-3 rounded-lg bg-slate-50/50">
+                            <p class="font-semibold text-slate-700">Tanda Tangan Warehouse,</p>
+                            <div>
+                                <p id="signWarehouseName" class="font-bold underline text-slate-900">( Petugas Warehouse )</p>
+                                <p class="text-[10px] text-slate-500">Staff / Admin Warehouse</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL ACTION FOOTER -->
+            <div id="modalDetailActions" class="p-4 bg-slate-50 border-t border-slate-200 rounded-b-2xl flex flex-wrap items-center justify-between gap-3">
+                <button onclick="window.print()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold rounded-lg flex items-center gap-1.5 shadow-sm">
+                    <i data-lucide="printer" class="w-4 h-4"></i> Cetak Bukti Slip (Print)
+                </button>
+
+                <div class="flex items-center gap-2">
+                    <!-- Dynamic Buttons inserted by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD / EDIT MASTER ITEM -->
+    <div id="modalMasterItem" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200">
+            <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-2xl">
+                <h3 id="modalMasterItemTitle" class="text-lg font-bold text-slate-900">Kelola Item Master Stok</h3>
+                <button onclick="app.closeModal('modalMasterItem')" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="formMasterItem" onsubmit="app.saveMasterItem(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Kode Barang</label>
+                    <input type="text" id="itemCode" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Nama Barang Material</label>
+                    <input type="text" id="itemName" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Kategori</label>
+                        <input type="text" id="itemCategory" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500" placeholder="Sparepart / Chemical">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Lokasi Rak</label>
+                        <input type="text" id="itemRak" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500" placeholder="Rak A-01">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Jumlah Stok</label>
+                        <input type="number" id="itemStock" min="0" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Satuan</label>
+                        <input type="text" id="itemUnit" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500" placeholder="Pcs / Ltr / Roll">
+                    </div>
+                </div>
+                <div class="pt-4 flex items-center justify-end space-x-3 border-t border-slate-200">
+                    <button type="button" onclick="app.closeModal('modalMasterItem')" class="px-4 py-2 bg-slate-200 text-slate-700 text-sm font-medium rounded-lg">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold rounded-lg shadow-sm">Simpan Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * PT WAHANA PRIMA SEJATI - Warehouse Management Application Logic
+         */
+        
+        // 16 Departments List
+        const DEPARTMENTS = [
+            "WAREHOUSE", "RFA", "TANK FARM", "ETP", "SHIPPING", 
+            "BOILER", "BIODIESEL", "WTP RO", "WTP NON RO", "HSE", 
+            "HRGA", "DORMITORY", "PROJECT", "QAMS", "MAINTENANCE", "LAINNYA"
+        ];
+
+        // Seed Users Generator (Pemohon & Supervisor for all 16 departments + WH Staff & Admin)
+        const generateInitialUsers = () => {
+            const usersList = [];
+            
+            // Special Warehouse Users
+            usersList.push({
+                username: "admin.warehouse",
+                name: "Admin Warehouse (Super Admin)",
+                dept: "WAREHOUSE",
+                role: "ADMIN_WH"
+            });
+            usersList.push({
+                username: "staff.warehouse",
+                name: "Staff Warehouse Operasional",
+                dept: "WAREHOUSE",
+                role: "STAFF_WH"
+            });
+
+            // Users & Supervisors for all 16 Departments
+            DEPARTMENTS.forEach(dept => {
+                const slug = dept.toLowerCase().replace(/\s+/g, '_');
+                usersList.push({
+                    username: `user.${slug}`,
+                    name: `Pemohon ${dept}`,
+                    dept: dept,
+                    role: "USER_DEPT"
+                });
+                usersList.push({
+                    username: `spv.${slug}`,
+                    name: `Supervisor ${dept}`,
+                    dept: dept,
+                    role: "SPV_DEPT"
+                });
+            });
+
+            return usersList;
+        };
+
+        // Seed Inventory Stock Items with Lokasi Rak
+        const initialInventory = [
+            { code: "WPS-M-001", name: "Bearing SKF 6204-2RSH", category: "Sparepart", rak: "Rak A-01", stock: 45, unit: "Pcs" },
+            { code: "WPS-M-002", name: "Gasket Spiral Wound 2 inch 150#", category: "Sparepart", rak: "Rak A-03", stock: 120, unit: "Pcs" },
+            { code: "WPS-M-003", name: "Oli Shell Tellus S2 MX 46", category: "Pelumas", rak: "Rak B-02", stock: 8, unit: "Drum" },
+            { code: "WPS-M-004", name: "Valve Globe 1 inch Stainless Steel", category: "Fitting", rak: "Rak B-05", stock: 14, unit: "Pcs" },
+            { code: "WPS-M-005", name: "Kain Majun Pembersih", category: "Konsumsi", rak: "Rak C-01", stock: 250, unit: "Kg" },
+            { code: "WPS-M-006", name: "Membran RO Dow Filmtec 8040", category: "WTP", rak: "Rak D-02", stock: 6, unit: "Unit" },
+            { code: "WPS-M-007", name: "Sarung Tangan Safety Rubber 12 inch", category: "HSE", rak: "Rak E-01", stock: 85, unit: "Pasang" },
+            { code: "WPS-M-008", name: "Elektroda Las LB-52 U 3.2mm", category: "Workshop", rak: "Rak A-04", stock: 18, unit: "Box" },
+            { code: "WPS-M-009", name: "Filter Bag ETP 7x17 inch 5 Micron", category: "Filter", rak: "Rak D-04", stock: 30, unit: "Pcs" },
+            { code: "WPS-M-010", name: "Pompa Centrifugal Impeller 5.5kW", category: "Pompa", rak: "Rak B-01", stock: 3, unit: "Unit" }
+        ];
+
+        // Core Application Class
+        class WarehouseApp {
+            constructor() {
+                this.users = generateInitialUsers();
+                this.currentUser = null;
+                this.broadcastChannel = new BroadcastChannel("wps_warehouse_channel");
+
+                this.initStorage();
+                this.initEvents();
+                this.populateUserSelect();
+                this.populateDeptDropdowns();
+                this.updateGlobalDatalist();
+            }
+
+            initStorage() {
+                if (!localStorage.getItem("wps_inventory")) {
+                    localStorage.setItem("wps_inventory", JSON.stringify(initialInventory));
+                }
+                if (!localStorage.getItem("wps_requests")) {
+                    const sampleReq = [{
+                        id: "WPS-GI-2026-001",
+                        date: new Date().toISOString().split('T')[0],
+                        requesterName: "Budi Santoso",
+                        deptUser: "MAINTENANCE",
+                        targetDept: "MAINTENANCE",
+                        notes: "Pengantian bearing & gasket rutin pompa line A",
+                        status: "APPROVED_SPV",
+                        items: [
+                            { code: "WPS-M-001", name: "Bearing SKF 6204-2RSH", rak: "Rak A-01", qty: 2, unit: "Pcs" },
+                            { code: "WPS-M-002", name: "Gasket Spiral Wound 2 inch 150#", rak: "Rak A-03", qty: 4, unit: "Pcs" }
+                        ]
+                    }];
+                    localStorage.setItem("wps_requests", JSON.stringify(sampleReq));
+                }
+                if (!localStorage.getItem("wps_logs")) {
+                    const sampleLogs = [{
+                        timestamp: new Date().toLocaleString("id-ID"),
+                        type: "SYSTEM_INIT",
+                        user: "SYSTEM",
+                        details: "Inisialisasi Sistem Permintaan Barang PT WAHANA PRIMA SEJATI"
+                    }];
+                    localStorage.setItem("wps_logs", JSON.stringify(sampleLogs));
+                }
+            }
+
+            initEvents() {
+                this.broadcastChannel.onmessage = (event) => {
+                    if (event.data && event.data.type === "DATA_UPDATED") {
+                        this.refreshActiveView();
+                    }
+                };
+            }
+
+            notifyTabs() {
+                this.broadcastChannel.postMessage({ type: "DATA_UPDATED" });
+            }
+
+            getInventory() {
+                return JSON.parse(localStorage.getItem("wps_inventory")) || [];
+            }
+
+            saveInventory(data) {
+                localStorage.setItem("wps_inventory", JSON.stringify(data));
+                this.updateGlobalDatalist();
+                this.notifyTabs();
+            }
+
+            getRequests() {
+                return JSON.parse(localStorage.getItem("wps_requests")) || [];
+            }
+
+            saveRequests(data) {
+                localStorage.setItem("wps_requests", JSON.stringify(data));
+                this.notifyTabs();
+            }
+
+            getLogs() {
+                return JSON.parse(localStorage.getItem("wps_logs")) || [];
+            }
+
+            addLog(type, details) {
+                const logs = this.getLogs();
+                logs.unshift({
+                    timestamp: new Date().toLocaleString("id-ID"),
+                    type: type,
+                    user: this.currentUser ? `${this.currentUser.name} (${this.currentUser.dept})` : "System",
+                    details: details
+                });
+                localStorage.setItem("wps_logs", JSON.stringify(logs));
+                this.notifyTabs();
+            }
+
+            populateUserSelect() {
+                const select = document.getElementById("loginSelectUser");
+                select.innerHTML = "";
+                
+                this.users.forEach(u => {
+                    const option = document.createElement("option");
+                    option.value = u.username;
+                    option.textContent = `[${u.role.replace('_', ' ')}] ${u.name} - ${u.dept}`;
+                    select.appendChild(option);
+                });
+            }
+
+            populateDeptDropdowns() {
+                const reqTargetSelect = document.getElementById("reqTargetDept");
+                const filterDeptSelect = document.getElementById("filterDeptReq");
+                
+                reqTargetSelect.innerHTML = "";
+                filterDeptSelect.innerHTML = `<option value="ALL">Semua Dept Tujuan</option>`;
+
+                DEPARTMENTS.forEach(dept => {
+                    const opt1 = document.createElement("option");
+                    opt1.value = dept;
+                    opt1.textContent = dept;
+                    reqTargetSelect.appendChild(opt1);
+
+                    const opt2 = document.createElement("option");
+                    opt2.value = dept;
+                    opt2.textContent = dept;
+                    filterDeptSelect.appendChild(opt2);
+                });
+            }
+
+            // Memperbarui datalist autocomplete untuk input barang
+            updateGlobalDatalist() {
+                const datalist = document.getElementById("inventoryDatalist");
+                if (!datalist) return;
+                datalist.innerHTML = "";
+                const inventory = this.getInventory();
+                
+                inventory.forEach(item => {
+                    const opt = document.createElement("option");
+                    opt.value = `${item.code} | ${item.name}`;
+                    datalist.appendChild(opt);
+                });
+            }
+
+            handleLogin(event) {
+                event.preventDefault();
+                const username = document.getElementById("loginSelectUser").value;
+                const user = this.users.find(u => u.username === username);
+                
+                if (user) {
+                    this.currentUser = user;
+                    
+                    document.getElementById("navUserName").textContent = user.name;
+                    document.getElementById("navUserRole").textContent = `${user.role.replace('_', ' ')} • ${user.dept}`;
+                    document.getElementById("sidebarUserDept").textContent = `Departemen: ${user.dept}`;
+                    document.getElementById("sidebarUserRole").textContent = `Role: ${user.role}`;
+
+                    document.getElementById("topNavbar").classList.remove("hidden");
+                    document.getElementById("mainSidebar").classList.remove("hidden");
+                    document.getElementById("screen-login").classList.add("hidden");
+
+                    const canManageStock = (user.role === 'STAFF_WH' || user.role === 'ADMIN_WH');
+                    document.getElementById("inventoryAdminActions").classList.toggle("hidden", !canManageStock);
+
+                    lucide.createIcons();
+                    this.switchTab("dashboard");
+                }
+            }
+
+            logout() {
+                this.currentUser = null;
+                document.getElementById("topNavbar").classList.add("hidden");
+                document.getElementById("mainSidebar").classList.add("hidden");
+                document.getElementById("screen-login").classList.remove("hidden");
+                document.querySelectorAll(".app-view").forEach(v => v.classList.add("hidden"));
+            }
+
+            switchTab(tabId) {
+                document.querySelectorAll(".app-view").forEach(v => v.classList.add("hidden"));
+                document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("bg-sky-50", "text-sky-700", "font-bold"));
+
+                const activeView = document.getElementById(`view-${tabId}`);
+                const activeNav = document.getElementById(`nav-${tabId}`);
+                
+                if (activeView) activeView.classList.remove("hidden");
+                if (activeNav) activeNav.classList.add("bg-sky-50", "text-sky-700", "font-bold");
+
+                this.refreshActiveView();
+            }
+
+            refreshActiveView() {
+                if (!this.currentUser) return;
+                this.renderDashboard();
+                this.renderRequestsTable();
+                this.renderInventoryTable();
+                this.renderLogsTable();
+                this.updateGlobalDatalist();
+                lucide.createIcons();
+            }
+
+            renderDashboard() {
+                const requests = this.getRequests();
+                const inventory = this.getInventory();
+
+                document.getElementById("statTotalRequests").textContent = requests.length;
+                document.getElementById("statPendingSpv").textContent = requests.filter(r => r.status === "PENDING_SPV").length;
+                document.getElementById("statReadyGi").textContent = requests.filter(r => r.status === "APPROVED_SPV").length;
+                document.getElementById("statLowStock").textContent = inventory.filter(i => i.stock <= 5).length;
+
+                this.renderCharts(requests);
+            }
+
+            renderCharts(requests) {
+                const deptCounts = {};
+                DEPARTMENTS.forEach(d => deptCounts[d] = 0);
+                requests.forEach(r => {
+                    if (deptCounts[r.targetDept] !== undefined) deptCounts[r.targetDept]++;
+                });
+
+                const ctxDept = document.getElementById('chartDeptRequests').getContext('2d');
+                if (window.deptChart) window.deptChart.destroy();
+                
+                window.deptChart = new Chart(ctxDept, {
+                    type: 'bar',
+                    data: {
+                        labels: DEPARTMENTS,
+                        datasets: [{
+                            label: 'Jumlah Permintaan',
+                            data: Object.values(deptCounts),
+                            backgroundColor: '#0284c7',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                    }
+                });
+
+                const statusCounts = { PENDING_SPV: 0, APPROVED_SPV: 0, COMPLETED: 0, CANCELLED: 0 };
+                requests.forEach(r => {
+                    if (statusCounts[r.status] !== undefined) statusCounts[r.status]++;
+                });
+
+                const ctxStatus = document.getElementById('chartStatusRequests').getContext('2d');
+                if (window.statusChart) window.statusChart.destroy();
+
+                window.statusChart = new Chart(ctxStatus, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Pending SPV', 'Disetujui SPV', 'Selesai / GI', 'Dibatalkan'],
+                        datasets: [{
+                            data: [statusCounts.PENDING_SPV, statusCounts.APPROVED_SPV, statusCounts.COMPLETED, statusCounts.CANCELLED],
+                            backgroundColor: ['#f59e0b', '#0284c7', '#10b981', '#ef4444']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+
+            renderRequestsTable() {
+                const tbody = document.getElementById("tableRequestsBody");
+                tbody.innerHTML = "";
+
+                let requests = this.getRequests();
+                const filterSearch = document.getElementById("filterSearchReq").value.toLowerCase();
+                const filterStatus = document.getElementById("filterStatusReq").value;
+                const filterDept = document.getElementById("filterDeptReq").value;
+
+                if (this.currentUser.role === "USER_DEPT" || this.currentUser.role === "SPV_DEPT") {
+                    requests = requests.filter(r => r.deptUser === this.currentUser.dept || r.targetDept === this.currentUser.dept);
+                }
+
+                requests = requests.filter(r => {
+                    const matchSearch = r.id.toLowerCase().includes(filterSearch) || 
+                                        r.requesterName.toLowerCase().includes(filterSearch) ||
+                                        r.deptUser.toLowerCase().includes(filterSearch);
+                    const matchStatus = filterStatus === "ALL" || r.status === filterStatus;
+                    const matchDept = filterDept === "ALL" || r.targetDept === filterDept;
+                    return matchSearch && matchStatus && matchDept;
+                });
+
+                if (requests.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">Tidak ada dokumen permintaan barang.</td></tr>`;
+                    return;
+                }
+
+                requests.forEach(r => {
+                    const tr = document.createElement("tr");
+                    tr.className = "hover:bg-slate-50 border-b border-slate-200 transition";
+
+                    let badgeStatus = '';
+                    if (r.status === 'PENDING_SPV') badgeStatus = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Pending SPV</span>`;
+                    else if (r.status === 'APPROVED_SPV') badgeStatus = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-100 text-sky-800">Disetujui SPV</span>`;
+                    else if (r.status === 'COMPLETED') badgeStatus = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Selesai (GI)</span>`;
+                    else if (r.status === 'CANCELLED') badgeStatus = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800">Dibatalkan</span>`;
+
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 font-mono font-bold text-sky-700">${r.id}</td>
+                        <td class="px-4 py-3 text-slate-600">${r.date}</td>
+                        <td class="px-4 py-3 font-medium text-slate-800">${r.requesterName}</td>
+                        <td class="px-4 py-3">
+                            <span class="font-semibold text-slate-700">${r.targetDept}</span>
+                            <span class="block text-[10px] text-slate-400">Dari: ${r.deptUser}</span>
+                        </td>
+                        <td class="px-4 py-3">${badgeStatus}</td>
+                        <td class="px-4 py-3 text-center font-semibold text-slate-700">${r.items.length} Item</td>
+                        <td class="px-4 py-3 text-right">
+                            <button onclick="app.openDetailModal('${r.id}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium text-xs border border-slate-300 transition">
+                                Detail / Slip
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            openNewRequestModal() {
+                document.getElementById("modalReqTitle").textContent = "Buat Permintaan Barang Baru";
+                document.getElementById("reqId").value = "";
+                document.getElementById("reqRequesterName").value = this.currentUser.name;
+                document.getElementById("reqDeptUser").value = this.currentUser.dept;
+                document.getElementById("reqTargetDept").value = this.currentUser.dept;
+                document.getElementById("reqNotes").value = "";
+
+                const tbody = document.getElementById("reqItemsTableBody");
+                tbody.innerHTML = "";
+                
+                this.addRequestRow();
+                this.openModal("modalRequest");
+            }
+
+            // Fungsi Tambah Baris Barang dengan Input Teks Manual / Auto-Suggest Datalist
+            addRequestRow(itemData = null) {
+                const tbody = document.getElementById("reqItemsTableBody");
+                if (tbody.children.length >= 10) {
+                    alert("Maksimal 10 item barang per dokumen permintaan!");
+                    return;
+                }
+
+                const rowId = 'row_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+                const tr = document.createElement("tr");
+                tr.id = rowId;
+
+                const defaultSearchVal = itemData ? `${itemData.code} | ${itemData.name}` : '';
+
+                tr.innerHTML = `
+                    <td class="p-2">
+                        <input type="text" 
+                               list="inventoryDatalist" 
+                               value="${defaultSearchVal}" 
+                               oninput="app.handleItemInput('${rowId}', this.value)" 
+                               placeholder="Ketik Kode atau Nama Barang..." 
+                               class="item-search-input w-full p-1.5 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-sky-500 font-medium" 
+                               required>
+                    </td>
+                    <td class="p-2 font-mono text-slate-600">
+                        <input type="text" value="${itemData ? itemData.rak : '-'}" class="item-rak w-full p-1 border border-transparent bg-transparent text-xs" placeholder="-">
+                    </td>
+                    <td class="p-2 font-semibold text-slate-700">
+                        <span class="item-stock">${itemData ? '-' : '-'}</span>
+                    </td>
+                    <td class="p-2">
+                        <input type="number" min="1" value="${itemData ? itemData.qty : 1}" class="item-qty w-full p-1.5 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-sky-500" required>
+                    </td>
+                    <td class="p-2 text-slate-600">
+                        <input type="text" value="${itemData ? itemData.unit : 'Pcs'}" class="item-unit w-full p-1 border border-transparent bg-transparent text-xs" placeholder="Satuan">
+                    </td>
+                    <td class="p-2 text-center">
+                        <button type="button" onclick="app.removeRequestRow('${rowId}')" class="text-rose-500 hover:text-rose-700 p-1">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+                lucide.createIcons();
+                this.updateItemCounter();
+
+                if (itemData) {
+                    this.handleItemInput(rowId, defaultSearchVal);
+                }
+            }
+
+            // Fungsi Handler Real-time ketika User Mengetik Kode / Nama Item Manual
+            handleItemInput(rowId, val) {
+                const tr = document.getElementById(rowId);
+                if (!tr) return;
+
+                const inventory = this.getInventory();
+                const cleanVal = val.trim().toLowerCase();
+
+                // Cari barang berdasarkan persis Kode, Nama, atau format Datalist ("KODE | NAMA")
+                const item = inventory.find(i => 
+                    i.code.toLowerCase() === cleanVal ||
+                    i.name.toLowerCase() === cleanVal ||
+                    `${i.code} | ${i.name}`.toLowerCase() === cleanVal ||
+                    i.code.toLowerCase() === cleanVal.split('|')[0].trim()
+                );
+
+                const rakInput = tr.querySelector(".item-rak");
+                const stockSpan = tr.querySelector(".item-stock");
+                const unitInput = tr.querySelector(".item-unit");
+
+                if (item) {
+                    rakInput.value = item.rak;
+                    stockSpan.textContent = item.stock;
+                    unitInput.value = item.unit;
+                    // Auto badge warna stok
+                    stockSpan.className = `item-stock font-bold ${item.stock <= 5 ? 'text-rose-600' : 'text-emerald-600'}`;
+                } else {
+                    stockSpan.textContent = "-";
+                    stockSpan.className = "item-stock text-slate-400";
+                }
+            }
+
+            removeRequestRow(rowId) {
+                const tr = document.getElementById(rowId);
+                if (tr) {
+                    tr.remove();
+                    this.updateItemCounter();
+                }
+            }
+
+            updateItemCounter() {
+                const count = document.getElementById("reqItemsTableBody").children.length;
+                const badge = document.getElementById("itemCounterBadge");
+                badge.textContent = `${count} / 10 Item`;
+                
+                const btnAdd = document.getElementById("btnAddItemRow");
+                if (count >= 10) {
+                    btnAdd.classList.add("opacity-50", "cursor-not-allowed");
+                } else {
+                    btnAdd.classList.remove("opacity-50", "cursor-not-allowed");
+                }
+            }
+
+            saveRequest(event) {
+                event.preventDefault();
+                const tbody = document.getElementById("reqItemsTableBody");
+                if (tbody.children.length === 0) {
+                    alert("Wajib menambahkan minimal 1 barang.");
+                    return;
+                }
+
+                const items = [];
+                let hasInvalidQty = false;
+
+                Array.from(tbody.children).forEach(tr => {
+                    const rawSearchVal = tr.querySelector(".item-search-input").value.trim();
+                    const qty = parseInt(tr.querySelector(".item-qty").value);
+                    const rakVal = tr.querySelector(".item-rak").value.trim() || "-";
+                    const unitVal = tr.querySelector(".item-unit").value.trim() || "Pcs";
+                    
+                    if (!rawSearchVal || isNaN(qty) || qty <= 0) {
+                        hasInvalidQty = true;
+                    }
+
+                    const inventory = this.getInventory();
+                    const invItem = inventory.find(i => 
+                        i.code.toLowerCase() === rawSearchVal.toLowerCase() ||
+                        i.name.toLowerCase() === rawSearchVal.toLowerCase() ||
+                        `${i.code} | ${i.name}`.toLowerCase() === rawSearchVal.toLowerCase() ||
+                        i.code.toLowerCase() === rawSearchVal.split('|')[0].trim().toLowerCase()
+                    );
+
+                    let itemCode = rawSearchVal;
+                    let itemName = rawSearchVal;
+
+                    if (invItem) {
+                        itemCode = invItem.code;
+                        itemName = invItem.name;
+                    } else if (rawSearchVal.includes('|')) {
+                        const parts = rawSearchVal.split('|');
+                        itemCode = parts[0].trim();
+                        itemName = parts[1].trim();
+                    }
+
+                    items.push({
+                        code: itemCode,
+                        name: itemName,
+                        rak: invItem ? invItem.rak : rakVal,
+                        qty: qty,
+                        unit: invItem ? invItem.unit : unitVal
+                    });
+                });
+
+                if (hasInvalidQty) {
+                    alert("Harap isi kode/nama barang dan jumlah permintaan dengan benar.");
+                    return;
+                }
+
+                const requests = this.getRequests();
+                const ticketId = `WPS-GI-${new Date().getFullYear()}-${String(requests.length + 1).padStart(3, '0')}`;
+
+                const newReq = {
+                    id: ticketId,
+                    date: new Date().toISOString().split('T')[0],
+                    requesterName: document.getElementById("reqRequesterName").value,
+                    deptUser: document.getElementById("reqDeptUser").value,
+                    targetDept: document.getElementById("reqTargetDept").value,
+                    notes: document.getElementById("reqNotes").value,
+                    status: "PENDING_SPV",
+                    items: items
+                };
+
+                requests.unshift(newReq);
+                this.saveRequests(requests);
+                this.addLog("NEW_REQUEST", `Membuat dokumen permintaan ${ticketId} untuk alokasi ${newReq.targetDept}`);
+
+                this.closeModal("modalRequest");
+                this.refreshActiveView();
+            }
+
+            openDetailModal(requestId) {
+                const requests = this.getRequests();
+                const req = requests.find(r => r.id === requestId);
+                if (!req) return;
+
+                document.getElementById("printTicketNo").textContent = req.id;
+                document.getElementById("printDate").textContent = `Tgl: ${req.date}`;
+                document.getElementById("printRequesterName").textContent = req.requesterName;
+                document.getElementById("printDeptUser").textContent = req.deptUser;
+                document.getElementById("printTargetDept").textContent = req.targetDept;
+                document.getElementById("printNotes").textContent = req.notes || '-';
+                document.getElementById("signRequesterName").textContent = `( ${req.requesterName} )`;
+
+                const badgeContainer = document.getElementById("detailBadgeStatus");
+                if (req.status === 'PENDING_SPV') badgeContainer.innerHTML = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Pending SPV Approval</span>`;
+                else if (req.status === 'APPROVED_SPV') badgeContainer.innerHTML = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-sky-100 text-sky-800">Disetujui SPV</span>`;
+                else if (req.status === 'COMPLETED') badgeContainer.innerHTML = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Goods Issued / Selesai</span>`;
+                else if (req.status === 'CANCELLED') badgeContainer.innerHTML = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800">Dibatalkan (Cancel GI)</span>`;
+
+                const tbody = document.getElementById("printItemsTableBody");
+                tbody.innerHTML = "";
+                req.items.forEach((item, index) => {
+                    const tr = document.createElement("tr");
+                    tr.className = "border-b border-slate-200";
+                    tr.innerHTML = `
+                        <td class="border border-slate-300 p-2 text-center">${index + 1}</td>
+                        <td class="border border-slate-300 p-2 font-mono">${item.code}</td>
+                        <td class="border border-slate-300 p-2 font-medium">${item.name}</td>
+                        <td class="border border-slate-300 p-2 text-center font-bold text-sky-900">${item.rak}</td>
+                        <td class="border border-slate-300 p-2 text-right font-bold">${item.qty}</td>
+                        <td class="border border-slate-300 p-2 text-center">${item.unit}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                const actionsContainer = document.getElementById("modalDetailActions").querySelector(".flex");
+                actionsContainer.innerHTML = "";
+
+                if (req.status === "PENDING_SPV" && (this.currentUser.role === "SPV_DEPT" || this.currentUser.role === "ADMIN_WH")) {
+                    actionsContainer.innerHTML += `
+                        <button onclick="app.approveRequest('${req.id}')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm">
+                            Setujui (Approve SPV)
+                        </button>
+                    `;
+                }
+
+                if (req.status === "APPROVED_SPV" && (this.currentUser.role === "STAFF_WH" || this.currentUser.role === "ADMIN_WH")) {
+                    actionsContainer.innerHTML += `
+                        <button onclick="app.processGoodsIssue('${req.id}')" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold rounded-lg shadow-sm">
+                            Proses Pengeluaran Barang (GI)
+                        </button>
+                    `;
+                }
+
+                if ((req.status === "COMPLETED" || req.status === "APPROVED_SPV") && (this.currentUser.role === "STAFF_WH" || this.currentUser.role === "ADMIN_WH")) {
+                    actionsContainer.innerHTML += `
+                        <button onclick="app.cancelGoodsIssue('${req.id}')" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg shadow-sm flex items-center gap-1">
+                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Cancel GI & Kembalikan Stok
+                        </button>
+                    `;
+                }
+
+                this.openModal("modalDetail");
+                lucide.createIcons();
+            }
+
+            approveRequest(reqId) {
+                const requests = this.getRequests();
+                const req = requests.find(r => r.id === reqId);
+                if (req) {
+                    req.status = "APPROVED_SPV";
+                    this.saveRequests(requests);
+                    this.addLog("SPV_APPROVE", `Persetujuan SPV diberikan untuk dokumen ${reqId}`);
+                    this.closeModal("modalDetail");
+                    this.refreshActiveView();
+                }
+            }
+
+            processGoodsIssue(reqId) {
+                const requests = this.getRequests();
+                const inventory = this.getInventory();
+                const req = requests.find(r => r.id === reqId);
+
+                if (!req) return;
+
+                for (let item of req.items) {
+                    const invItem = inventory.find(i => i.code === item.code);
+                    if (invItem && invItem.stock < item.qty) {
+                        alert(`Stok tidak mencukupi untuk barang: ${item.name} (Stok Ada: ${invItem.stock})`);
+                        return;
+                    }
+                }
+
+                req.items.forEach(item => {
+                    const invItem = inventory.find(i => i.code === item.code);
+                    if (invItem) {
+                        invItem.stock -= item.qty;
+                    }
+                });
+
+                req.status = "COMPLETED";
+                this.saveInventory(inventory);
+                this.saveRequests(requests);
+                this.addLog("GOODS_ISSUE", `Pengeluaran barang (GI) diproses untuk dokumen ${reqId}`);
+
+                this.closeModal("modalDetail");
+                this.refreshActiveView();
+            }
+
+            cancelGoodsIssue(reqId) {
+                if (!confirm(`Konfirmasi Cancel GI untuk tiket ${reqId}? Stok barang akan dikembalikan secara otomatis ke master inventory.`)) {
+                    return;
+                }
+
+                const requests = this.getRequests();
+                const inventory = this.getInventory();
+                const req = requests.find(r => r.id === reqId);
+
+                if (!req) return;
+
+                if (req.status === "COMPLETED") {
+                    req.items.forEach(item => {
+                        const invItem = inventory.find(i => i.code === item.code);
+                        if (invItem) {
+                            invItem.stock += item.qty;
+                        }
+                    });
+                    this.saveInventory(inventory);
+                }
+
+                req.status = "CANCELLED";
+                this.saveRequests(requests);
+                this.addLog("CANCEL_GI", `Pembatalan Pengeluaran Barang (Cancel GI) pada dokumen ${reqId}. Stok dikembalikan.`);
+
+                this.closeModal("modalDetail");
+                this.refreshActiveView();
+            }
+
+            renderInventoryTable() {
+                const tbody = document.getElementById("tableInventoryBody");
+                tbody.innerHTML = "";
+
+                const inventory = this.getInventory();
+                const filterSearch = document.getElementById("filterSearchStock").value.toLowerCase();
+
+                const filtered = inventory.filter(i => 
+                    i.code.toLowerCase().includes(filterSearch) ||
+                    i.name.toLowerCase().includes(filterSearch) ||
+                    i.category.toLowerCase().includes(filterSearch) ||
+                    i.rak.toLowerCase().includes(filterSearch)
+                );
+
+                if (filtered.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">Tidak ada item barang ditemukan.</td></tr>`;
+                    return;
+                }
+
+                const canManageStock = (this.currentUser && (this.currentUser.role === 'STAFF_WH' || this.currentUser.role === 'ADMIN_WH'));
+
+                filtered.forEach(i => {
+                    const tr = document.createElement("tr");
+                    tr.className = "hover:bg-slate-50 border-b border-slate-200 transition";
+
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 font-mono font-bold text-sky-700">${i.code}</td>
+                        <td class="px-4 py-3 font-medium text-slate-800">${i.name}</td>
+                        <td class="px-4 py-3 text-slate-600">${i.category}</td>
+                        <td class="px-4 py-3 font-bold text-sky-900">${i.rak}</td>
+                        <td class="px-4 py-3 text-right font-bold ${i.stock <= 5 ? 'text-rose-600' : 'text-slate-800'}">${i.stock}</td>
+                        <td class="px-4 py-3 text-slate-500">${i.unit}</td>
+                        <td class="px-4 py-3 text-right">
+                            ${canManageStock ? `
+                                <button onclick="app.editMasterItem('${i.code}')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs border border-slate-300">
+                                    Edit Stok
+                                </button>
+                            ` : '-'}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            openNewItemModal() {
+                document.getElementById("modalMasterItemTitle").textContent = "Tambah Item Barang Baru";
+                document.getElementById("itemCode").value = `WPS-M-${String(this.getInventory().length + 1).padStart(3, '0')}`;
+                document.getElementById("itemName").value = "";
+                document.getElementById("itemCategory").value = "Sparepart";
+                document.getElementById("itemRak").value = "Rak A-01";
+                document.getElementById("itemStock").value = 10;
+                document.getElementById("itemUnit").value = "Pcs";
+
+                this.openModal("modalMasterItem");
+            }
+
+            editMasterItem(code) {
+                const inventory = this.getInventory();
+                const item = inventory.find(i => i.code === code);
+                if (!item) return;
+
+                document.getElementById("modalMasterItemTitle").textContent = "Update Master Stok Barang";
+                document.getElementById("itemCode").value = item.code;
+                document.getElementById("itemName").value = item.name;
+                document.getElementById("itemCategory").value = item.category;
+                document.getElementById("itemRak").value = item.rak;
+                document.getElementById("itemStock").value = item.stock;
+                document.getElementById("itemUnit").value = item.unit;
+
+                this.openModal("modalMasterItem");
+            }
+
+            saveMasterItem(event) {
+                event.preventDefault();
+                const code = document.getElementById("itemCode").value;
+                const name = document.getElementById("itemName").value;
+                const category = document.getElementById("itemCategory").value;
+                const rak = document.getElementById("itemRak").value;
+                const stock = parseInt(document.getElementById("itemStock").value);
+                const unit = document.getElementById("itemUnit").value;
+
+                const inventory = this.getInventory();
+                const existingIndex = inventory.findIndex(i => i.code === code);
+
+                if (existingIndex >= 0) {
+                    inventory[existingIndex] = { code, name, category, rak, stock, unit };
+                    this.addLog("UPDATE_STOCK", `Memperbarui stok item ${code} (${name}) menjadi ${stock} ${unit}`);
+                } else {
+                    inventory.push({ code, name, category, rak, stock, unit });
+                    this.addLog("ADD_STOCK", `Menambahkan item master baru ${code} (${name})`);
+                }
+
+                this.saveInventory(inventory);
+                this.closeModal("modalMasterItem");
+                this.refreshActiveView();
+            }
+
+            downloadExcelTemplate() {
+                const templateData = [
+                    { "Kode Barang": "WPS-M-101", "Nama Barang": "Contoh Sparepart", "Kategori": "Sparepart", "Lokasi Rak": "Rak A-01", "Jumlah Stok": 50, "Satuan": "Pcs" }
+                ];
+                const worksheet = XLSX.utils.json_to_sheet(templateData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Template Stok");
+                XLSX.writeFile(workbook, "Template_Master_Stok_WPS.xlsx");
+            }
+
+            exportExcelStock() {
+                const inventory = this.getInventory();
+                const exportData = inventory.map(i => ({
+                    "Kode Barang": i.code,
+                    "Nama Barang": i.name,
+                    "Kategori": i.category,
+                    "Lokasi Rak": i.rak,
+                    "Jumlah Stok": i.stock,
+                    "Satuan": i.unit
+                }));
+                const worksheet = XLSX.utils.json_to_sheet(exportData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Master Stok");
+                XLSX.writeFile(workbook, `Master_Stok_WPS_${new Date().toISOString().split('T')[0]}.xlsx`);
+            }
+
+            importExcelStock(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+                    if (jsonData.length > 0) {
+                        const newInventory = jsonData.map((row, idx) => ({
+                            code: row["Kode Barang"] || `WPS-IMP-${idx + 1}`,
+                            name: row["Nama Barang"] || "Unspecified Item",
+                            category: row["Kategori"] || "Umum",
+                            rak: row["Lokasi Rak"] || "Rak General",
+                            stock: parseInt(row["Jumlah Stok"] || 0),
+                            unit: row["Satuan"] || "Pcs"
+                        }));
+
+                        this.saveInventory(newInventory);
+                        this.addLog("IMPORT_EXCEL", `Mengimpor ${newInventory.length} item stok dari file Excel`);
+                        alert(`Berhasil mengimpor ${newInventory.length} item stok master.`);
+                        this.refreshActiveView();
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+
+            renderLogsTable() {
+                const tbody = document.getElementById("tableLogsBody");
+                tbody.innerHTML = "";
+                const logs = this.getLogs();
+
+                logs.forEach(l => {
+                    const tr = document.createElement("tr");
+                    tr.className = "hover:bg-slate-50 border-b border-slate-200 text-xs";
+                    tr.innerHTML = `
+                        <td class="px-4 py-2.5 font-mono text-slate-500">${l.timestamp}</td>
+                        <td class="px-4 py-2.5 font-semibold text-sky-800">${l.type}</td>
+                        <td class="px-4 py-2.5 font-medium text-slate-700">${l.user}</td>
+                        <td class="px-4 py-2.5 text-slate-600">${l.details}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            openModal(id) {
+                document.getElementById(id).classList.remove("hidden");
+            }
+
+            closeModal(id) {
+                document.getElementById(id).classList.add("hidden");
+            }
+        }
+
+        let app;
+        window.onload = () => {
+            app = new WarehouseApp();
+            lucide.createIcons();
+        };
+    </script>
+</body>
+</html>
+
+```
